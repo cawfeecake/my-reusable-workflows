@@ -11,11 +11,11 @@ on:
 jobs:
   job0:
     concurrency:
-      group: ${{ inputs.ENV == 'prod' }}
+      group: ${{ inputs.ENV }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "sleeping..."
+          echo "received ${{ inputs.ENV }}; sleeping..."
           sleep 60
           echo "AWAKE!"
