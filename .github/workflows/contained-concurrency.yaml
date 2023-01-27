@@ -1,0 +1,21 @@
+name: concurrency-test
+
+on:
+  workflow_call:
+    inputs:
+      ENV:
+        description: a concurrency key
+        type: string
+        required: true
+
+jobs:
+  job0:
+    concurrency:
+      group: ${{ inputs.ENV == 'prod' }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "sleeping..."
+          sleep 60
+          echo "AWAKE!"
