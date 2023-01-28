@@ -7,7 +7,6 @@ on:
         description: how long to sleep for
         type: string
         required: true
-        default: 60
       CONCURRENCY_KEY:
         description: an identifier that will prevent equally keyed workflows from running at the same time
         type: string
