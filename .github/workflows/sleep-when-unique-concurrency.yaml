@@ -1,0 +1,27 @@
+name: sleep-for-a-little
+
+on:
+  workflow_call:
+    inputs:
+      TIME_TO_SLEEP:
+        description: how long to sleep for
+        type: string
+        required: true
+        default: 60
+      CONCURRENCY_KEY:
+        description: an identifier that will prevent equally keyed workflows from running at the same time
+        type: string
+        required: true
+
+jobs:
+  sleeping-job:
+    concurrency:
+      group: ${{ inputs.CONCURRENCY_KEY }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '::info::received ${{ inputs.TIME_TO_SLEEP }} as the (de)concurreny'
+          echo '::info::sleeping...'
+          sleep ${{ inputs.TIME_TO_SLEEP }}
+          echo '::info::sleep over; finishing job'
