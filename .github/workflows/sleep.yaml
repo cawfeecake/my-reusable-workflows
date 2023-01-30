@@ -7,9 +7,14 @@ on:
         description: how long to sleep for
         type: string
         required: true
+      ENVIRONMENT:
+        description: what GitHub environment to run the job for
+        type: string
+        required: true
 
 jobs:
   sleeping-job:
+    environment: ${{ inputs.ENVIRONMENT }}
     runs-on: ubuntu-latest
     steps:
       - run: |

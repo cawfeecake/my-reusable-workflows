@@ -1,4 +1,4 @@
-name: sleep-for-a-little
+name: sleep-for-a-little-with-concurrency
 
 on:
   workflow_call:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo '::info::received ${{ inputs.TIME_TO_SLEEP }} as the (de)concurreny'
-          echo '::info::sleeping...'
+          echo '::info::received ${{ inputs.CONCURRENCY_KEY }} as the concurreny key'
+          echo '::info::sleeping for ${{ inputs.TIME_TO_SLEEP }}s...'
           sleep ${{ inputs.TIME_TO_SLEEP }}
           echo '::info::sleep over; finishing job'
