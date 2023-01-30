@@ -17,6 +17,7 @@ jobs:
     concurrency:
       group: ${{ inputs.CONCURRENCY_KEY }}
       cancel-in-progress: false
+    environment: ${{ inputs.CONCURRENCY_KEY }}
     runs-on: ubuntu-latest
     steps:
       - run: |
