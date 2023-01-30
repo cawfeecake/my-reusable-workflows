@@ -1,0 +1,18 @@
+name: sleep-for-a-little
+
+on:
+  workflow_call:
+    inputs:
+      TIME_TO_SLEEP:
+        description: how long to sleep for
+        type: string
+        required: true
+
+jobs:
+  sleeping-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '::info::sleeping for ${{ inputs.TIME_TO_SLEEP }}s...'
+          sleep ${{ inputs.TIME_TO_SLEEP }}
+          echo '::info::sleep over; finishing job'
