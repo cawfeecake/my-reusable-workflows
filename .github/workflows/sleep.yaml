@@ -1,4 +1,4 @@
-name: sleep-for-a-little
+name: sleep
 
 on:
   workflow_call:
@@ -10,10 +10,10 @@ on:
       ENVIRONMENT:
         description: what GitHub environment to run the job for
         type: string
-        required: true
+        required: false
 
 jobs:
-  sleeping-job:
+  sleep:
     environment: ${{ inputs.ENVIRONMENT }}
     runs-on: ubuntu-latest
     steps:
