@@ -23,6 +23,20 @@ on:
 
 jobs:
   sleep:
+    if: inputs.CONCURRENCY_KEY == ''
+    environment: ${{ inputs.ENVIRONMENT }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '::info::sleeping for ${{ inputs.TIME_TO_SLEEP }}s...'
+          sleep ${{ inputs.TIME_TO_SLEEP }}
+          echo '::info::sleep over; finishing job'
+      - if: ${{ inputs.SHOULD_FAIL == 'true' }}
+        run:
+          echo '::info::erroring workflow out as requested'
+          exit 1
+  sleep-with-concurrency:
+    if: inputs.CONCURRENCY_KEY != ''
     concurrency: ${{ inputs.CONCURRENCY_KEY }}
     environment: ${{ inputs.ENVIRONMENT }}
     runs-on: ubuntu-latest
