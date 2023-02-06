@@ -16,9 +16,14 @@ on:
         type: boolean
         required: false
         default: false
+      CONCURRENCY_KEY:
+        description: ensure execution of only 1 of these jobs at time on this id
+        type: string
+        required: false
 
 jobs:
   sleep:
+    concurrency: ${{ inputs.CONCURRENCY_KEY }}
     environment: ${{ inputs.ENVIRONMENT }}
     runs-on: ubuntu-latest
     steps:
