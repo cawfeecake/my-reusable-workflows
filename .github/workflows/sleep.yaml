@@ -11,6 +11,11 @@ on:
         description: what GitHub environment to run the job for
         type: string
         required: false
+      SHOULD_FAIL:
+        description: whether or not the workflow should fail at the end of the sleep
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   sleep:
@@ -21,3 +26,7 @@ jobs:
           echo '::info::sleeping for ${{ inputs.TIME_TO_SLEEP }}s...'
           sleep ${{ inputs.TIME_TO_SLEEP }}
           echo '::info::sleep over; finishing job'
+      - if: ${{ inputs.SHOULD_FAIL == 'true' }}
+        run:
+          echo '::info::erroring workflow out as requested'
+          exit 1
