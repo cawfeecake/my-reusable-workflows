@@ -1,0 +1,90 @@
+name: determine-to-queue
+
+on:
+  workflow_call:
+    inputs:
+      RUN_BEFORE:
+        description: expected numerical identifier of the run that should be ahead in the queue if running
+        type: string
+        required: true
+      JOB_NAMES:
+        description: newline separated list of job names to check if running to determine where to queue
+        type: string
+        required: true
+    outputs:
+      run-before-id:
+        description: if there is queueing to do at any stage, this will be the id of the run to watch
+        value: ${{ jobs.determine.outputs.run-id }}
+      should-queue-map:
+        description: JSON mapping of job names as keys to booleans representing whether that job is currently executing 
+        value: ${{ jobs.determine.outputs.should-queue-map }}
+
+jobs:
+  determine:
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.get-run-before.outputs.id }}
+      should-queue-map: ${{ steps.check-input.outputs.map || steps.determine.outputs.map }}
+    env:
+      RUN_BEFORE: ${{ inputs.RUN_BEFORE }}
+      JOB_NAMES: ${{ inputs.JOB_NAMES }}
+    steps:
+      - id: no-queueing-default
+        run: |
+          echo "map=$(echo $JOB_NAMES | jq --null-input --raw-input --compact-output '[inputs] | map({(.): false}) | add')" >> "$GITHUB_OUTPUT"
+
+      - id: check-input
+        run: |
+          # if first run, no need to queue
+          if [[ $previous_run_number < 1 ]]; then
+            echo 'map=${{ steps.no-queueing-default.outputs.map }}' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+      - id: get-run-before
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          twenty_most_recent_runs=$(mktemp)
+          # note: default for --limit in `gh run list ...` is 20
+          gh run list -R ${{ github.repository }} -w ${{ github.workflow }} --json databaseId,number > $twenty_most_recent_runs
+          # <debug>
+          echo '::group::20 most recent workflow runs'
+          jq . $twenty_most_recent_runs
+          echo '::endgroup::'
+          # </debug>
+          run_before_warpped_array=$(jq --argjson before "$RUN_BEFORE" 'map(select(.number == $before))' $twenty_most_recent_runs)
+          if [[ $(jq 'length' <<< $run_before_warpped_array) < 1 ]]; then
+            # TODO make script more robust by looking back further 
+            # can even use difference between current number and number of latest to determine search coordinates
+            echo "::error::unable to find the previous run (#$RUN_BEFORE) in lastest 20 workflow runs"
+            exit 1
+          fi
+          run_before=$(jq 'first' <<< $run_before_warpped_array)
+          # <debug>
+          echo "::group:workflow run #$RUN_BEFORE"
+          jq . <<< $run_before
+          echo '::endgroup::'
+          # <debug>
+          echo "id=$(jq --raw-output '.databaseId' <<< $run_before)" >> "$GITHUB_OUTPUT"
+
+      - id: determine
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          view_run_res=$(mktemp)
+          gh run view -R ${{ github.repository }} -w ${{ github.workflow }} ${{ steps.get-run-before.outputs.id }} --json conclusion,jobs > $view_run_res
+          if [[ $(jq --raw-output '.conclusion' $view_run_res) == "" ]]; then
+            completed_jobs=$(jq --raw-output '.jobs[] | select(.conclusion != "") | .name' $view_run_res | sed 's/^\([^ ][^ ]*\) .*$/\1/')
+            to_queue=$(comm -23 <(echo $JOB_NAMES | sort -u) <(echo $completed_jobs | sort -u))
+            working_map=$(mktemp)
+            echo '${{ steps.no-queueing-default.outputs.map }}' > $working_map
+            working_map_tmp=$(mktemp)
+            while read -r job; do
+              jq --arg j "$job" '.[$j] = true' $working_map > $working_map_tmp
+              jq . $working_map_tmp > $working_map
+            done <<< $to_queue
+            echo "map=$(jq --compact-output . $working_map)" >> "$GITHUB_OUTPUT"
+          else
+            echo 'map=${{ steps.no-queueing-default.outputs.map }}' >> "$GITHUB_OUTPUT"
+          fi
