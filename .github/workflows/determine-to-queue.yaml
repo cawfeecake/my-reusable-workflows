@@ -3,8 +3,8 @@ name: determine-to-queue
 on:
   workflow_call:
     inputs:
-      RUN_BEFORE:
-        description: expected numerical identifier of the run that should be ahead in the queue if running
+      RUN_TO_QUEUE:
+        description: numerical identifier of the run that is being queued
         type: string
         required: true
       JOB_NAMES:
@@ -12,7 +12,7 @@ on:
         type: string
         required: true
     outputs:
-      run-before-id:
+      previous-run-id:
         description: if there is queueing to do at any stage, this will be the id of the run to watch
         value: ${{ jobs.determine.outputs.run-id }}
       should-queue-map:
@@ -23,10 +23,10 @@ jobs:
   determine:
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.get-run-before.outputs.id }}
+      run-id: ${{ steps.get-prev-run.outputs.id }}
       should-queue-map: ${{ steps.check-input.outputs.map || steps.determine.outputs.map }}
     env:
-      RUN_BEFORE: ${{ inputs.RUN_BEFORE }}
+      RUN_TO_QUEUE: ${{ inputs.RUN_TO_QUEUE }}
       JOB_NAMES: ${{ inputs.JOB_NAMES }}
     steps:
       - id: no-queueing-default
@@ -41,7 +41,7 @@ jobs:
             exit 0
           fi
 
-      - id: get-run-before
+      - id: get-prev-run
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -53,27 +53,28 @@ jobs:
           jq . $twenty_most_recent_runs
           echo '::endgroup::'
           # </debug>
-          run_before_warpped_array=$(jq --argjson before "$RUN_BEFORE" 'map(select(.number == $before))' $twenty_most_recent_runs)
-          if [[ $(jq 'length' <<< $run_before_warpped_array) < 1 ]]; then
+          previous_run_number=$(($RUN_TO_QUEUE - 1))
+          previous_run_wrapped_array=$(jq --argjson prev "$previous_run_number" 'map(select(.number == $prev))' $twenty_most_recent_runs)
+          if [[ $(jq 'length' <<< $previous_run_wrapped_array) < 1 ]]; then
             # TODO make script more robust by looking back further 
             # can even use difference between current number and number of latest to determine search coordinates
             echo "::error::unable to find the previous run (#$RUN_BEFORE) in lastest 20 workflow runs"
             exit 1
           fi
-          run_before=$(jq 'first' <<< $run_before_warpped_array)
+          previous_run=$(jq 'first' <<< $previous_run_wrapped_array)
           # <debug>
-          echo "::group:workflow run #$RUN_BEFORE"
-          jq . <<< $run_before
+          echo "::group:workflow run #$previous_run_number"
+          jq . <<< $previous_run
           echo '::endgroup::'
           # <debug>
-          echo "id=$(jq --raw-output '.databaseId' <<< $run_before)" >> "$GITHUB_OUTPUT"
+          echo "id=$(jq --raw-output '.databaseId' <<< $previous_run)" >> "$GITHUB_OUTPUT"
 
       - id: determine
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           view_run_res=$(mktemp)
-          gh run view -R ${{ github.repository }} -w ${{ github.workflow }} ${{ steps.get-run-before.outputs.id }} --json conclusion,jobs > $view_run_res
+          gh run view -R ${{ github.repository }} -w ${{ github.workflow }} ${{ steps.get-prev-run.outputs.id }} --json conclusion,jobs > $view_run_res
           if [[ $(jq --raw-output '.conclusion' $view_run_res) == "" ]]; then
             completed_jobs=$(jq --raw-output '.jobs[] | select(.conclusion != "") | .name' $view_run_res | sed 's/^\([^ ][^ ]*\) .*$/\1/')
             to_queue=$(comm -23 <(echo $JOB_NAMES | sort -u) <(echo $completed_jobs | sort -u))
