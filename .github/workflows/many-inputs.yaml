@@ -32,7 +32,7 @@ jobs:
       REQUIRED_FALSE_WITH_DEFAULT: ${{ inputs.REQUIRED_FALSE_WITH_DEFAULT }}
     steps:
       - run: |
-        echo "::info::REQUIRED = \"$REQUIRED\""
-        echo "::info::NOT_REQUIRED= \"$NOT_REQUIRED\""
-        echo "::info::REQUIRED_TRUE_WITH_DEFAULT = \"$REQUIRED_TRUE_WITH_DEFAULT\""
-        echo "::info::REQUIRED_FALSE_WITH_DEFAULT = \"$REQUIRED_FALSE_WITH_DEFAULT\""
+          echo "::info::REQUIRED = \"$REQUIRED\""
+          echo "::info::NOT_REQUIRED= \"$NOT_REQUIRED\""
+          echo "::info::REQUIRED_TRUE_WITH_DEFAULT = \"$REQUIRED_TRUE_WITH_DEFAULT\""
+          echo "::info::REQUIRED_FALSE_WITH_DEFAULT = \"$REQUIRED_FALSE_WITH_DEFAULT\""
