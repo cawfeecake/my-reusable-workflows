@@ -33,7 +33,7 @@ jobs:
     steps:
       - run: |
           echo "::info::REQUIRED = \"$REQUIRED\""
-          echo "::info::is REQUIRED true?... \"${{ env.REQUIRED && true }}\""
+          echo "::info::is REQUIRED true?... \"${{ (env.REQUIRED && true) || false }}\""
           echo "::info::is REQUIRED equal to empty string?... \"${{ env.REQUIRED == '' }}\""
           echo "::info::NOT_REQUIRED= \"$NOT_REQUIRED\""
           echo "::info::REQUIRED_TRUE_WITH_DEFAULT = \"$REQUIRED_TRUE_WITH_DEFAULT\""
